@@ -1008,6 +1008,14 @@ function Home({store,setTab}){
   if(todayActions.length===0&&todayL.length===0)
     todayActions.push({icon:"✅",text:"Свободный день — всё под контролем",tab:"home"});
 
+  // ── Блок "Моя неделя" ──
+  const weekDays = wDates.map(d => iso(d));
+  // количество уроков по дням
+  const dayLessons = weekDays.map(dk => {
+    const dayEv = allW.filter(e => e.date === dk).sort((a,b)=>a.time>b.time?1:-1);
+    return { date: dk, events: dayEv };
+  });
+
   return(
     <div>
       {/* Live lesson banner */}
@@ -1087,7 +1095,7 @@ function Home({store,setTab}){
       </div>
 
       {/* 3 columns: today / pending pay / tasks */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14,marginBottom:16}}>
         {/* Today lessons */}
         <Card>
           <div style={{fontWeight:700,fontSize:14,marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -1159,6 +1167,39 @@ function Home({store,setTab}){
           <div style={{marginTop:10}}><Btn variant="ghost" size="sm" onClick={()=>setTab("tasks")}>Все задачи →</Btn></div>
         </Card>
       </div>
+
+      {/* ── Блок "Моя неделя" ── */}
+      <Card style={{marginTop:6}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <div style={{fontWeight:700,fontSize:15,letterSpacing:"-0.02em"}}>Моя неделя</div>
+          <Btn variant="ghost" size="sm" onClick={()=>setTab("week")}>Подробнее →</Btn>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4}}>
+          {weekDays.map((dk,idx)=>{
+            const dayData = dayLessons.find(d => d.date === dk);
+            const dayEv = dayData ? dayData.events : [];
+            const isToday = dk === t;
+            return(
+              <div key={dk} onClick={()=>setTab("week")} style={{cursor:"pointer",padding:"8px 4px",borderRadius:8,background:isToday?`${T.accent}10`:"transparent",border:isToday?`1px solid ${T.accent}30`:"none",textAlign:"center"}}>
+                <div style={{fontSize:10,fontWeight:700,color:isToday?T.accent:T.t3,textTransform:"uppercase",letterSpacing:"0.04em"}}>{DS[idx]}</div>
+                <div style={{fontSize:11,fontWeight:600,color:isToday?T.accent:T.text,marginTop:4}}>{wDates[idx].getDate()}</div>
+                {dayEv.length>0 && <div style={{fontSize:9,color:T.t2,fontWeight:500,marginTop:3}}>{dayEv.length} ур</div>}
+                <div style={{marginTop:3,display:"flex",flexDirection:"column",gap:2}}>
+                  {dayEv.slice(0,2).map(ev=>{
+                    const st=students.find(s=>s.id===ev.studentId);
+                    return(
+                      <div key={ev.id} style={{fontSize:8,color:T.t3,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",background:isToday?`${T.accent}08`:"transparent",padding:"1px 3px",borderRadius:3}}>
+                        {ev.time?.slice(0,5)} {st?.name||ev.title}
+                      </div>
+                    );
+                  })}
+                  {dayEv.length>2 && <div style={{fontSize:8,color:T.t3}}>+{dayEv.length-2} ещё</div>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
     </div>
   );
 }
