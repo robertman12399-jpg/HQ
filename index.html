@@ -950,6 +950,7 @@ function QuickLogModal({store,onClose}){
    HOME
 ══════════════════════════════════════════════════════════════ */
 function Home({store,setTab}){
+  const { isMobile } = useDevice();
   const{events,students,expenses,incomes,tasks,goals,rls,excs,payments,lessonLog,setQuickLog}=store;
   const now=new Date(),t=today(),mStr=localYM(now);
   const wDates=getWeek(0),wS=iso(wDates[0]),wE=iso(wDates[6]);
@@ -985,90 +986,96 @@ function Home({store,setTab}){
   const greet=greetHour<12?"Доброе утро":greetHour<18?"Добрый день":"Добрый вечер";
   const MN2=["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
 
-  // "Что сделать сегодня" список
+  // "Что сделать сегодня"
   const todayActions=[];
   todayL.filter(e=>e.status==="planned").forEach(l=>{
     const st=students.find(s=>s.id===l.studentId);
     todayActions.push({icon:"📚",text:`Урок — ${st?.name||"ученик"} в ${l.time?.slice(0,5)}`,tab:"calendar"});
   });
-  pendPay.slice(0,3).forEach(({s,left})=>{
+  pendPay.slice(0, isMobile ? 2 : 3).forEach(({s,left})=>{
     todayActions.push({icon:"💰",text:`Напомнить об оплате — ${s.name} (${fmtM(left)} ₽)`,tab:"payments"});
   });
-  overdueTasks.slice(0,2).forEach(t2=>{
+  overdueTasks.slice(0, isMobile ? 1 : 2).forEach(t2=>{
     todayActions.push({icon:"⚠️",text:`Просроченная задача: ${t2.title}`,tab:"tasks"});
   });
-  // Completed lessons today without a journal entry
   const doneTodayNoLog=todayL.filter(l=>l.status==="done").filter(l=>{
     return !(Array.isArray(lessonLog)?lessonLog:[]).some(j=>sameId(j.studentId,l.studentId)&&j.date===t);
   });
-  doneTodayNoLog.slice(0,3).forEach(l=>{
+  doneTodayNoLog.slice(0, isMobile ? 1 : 3).forEach(l=>{
     const st=students.find(s=>s.id===l.studentId);
     todayActions.push({icon:"📔",text:`Заполнить журнал — ${st?.name||"ученик"}`,tab:"_quicklog",studentId:l.studentId,date:t});
   });
   if(todayActions.length===0&&todayL.length===0)
     todayActions.push({icon:"✅",text:"Свободный день — всё под контролем",tab:"home"});
 
-  // ── Блок "Моя неделя" ──
+  // Данные для недели
   const weekDays = wDates.map(d => iso(d));
-  // количество уроков по дням
   const dayLessons = weekDays.map(dk => {
     const dayEv = allW.filter(e => e.date === dk).sort((a,b)=>a.time>b.time?1:-1);
     return { date: dk, events: dayEv };
   });
 
+  // Адаптивные отступы и размеры
+  const pad = isMobile ? 14 : 20;
+  const gap = isMobile ? 12 : 16;
+  const fontSizeTitle = isMobile ? 14 : 15;
+  const fontSizeCardTitle = isMobile ? 13 : 14;
+  const fontSizeSmall = isMobile ? 9 : 10;
+  const fontSizeMedium = isMobile ? 11 : 12;
+
   return(
     <div>
       {/* Live lesson banner */}
       {currentEv&&(
-        <div style={{background:"linear-gradient(135deg,#16A34A,#15803D)",borderRadius:12,padding:"12px 18px",marginBottom:16,color:"#fff",display:"flex",alignItems:"center",gap:12,boxShadow:"0 4px 20px rgba(22,163,74,0.28)"}}>
-          <div className="pulse-dot" style={{width:9,height:9,borderRadius:"50%",background:"rgba(255,255,255,0.9)",flexShrink:0}}/>
+        <div style={{background:"linear-gradient(135deg,#16A34A,#15803D)",borderRadius:12,padding: isMobile ? "10px 14px" : "12px 18px",marginBottom:16,color:"#fff",display:"flex",alignItems:"center",gap:12,boxShadow:"0 4px 20px rgba(22,163,74,0.28)"}}>
+          <div className="pulse-dot" style={{width: isMobile ? 7 : 9,height: isMobile ? 7 : 9,borderRadius:"50%",background:"rgba(255,255,255,0.9)",flexShrink:0}}/>
           <div style={{flex:1}}>
-            <div style={{fontWeight:700,fontSize:14}}>{students.find(s=>s.id===currentEv.studentId)?.name||currentEv.title} — идёт сейчас</div>
-            <div style={{fontSize:12,opacity:0.8}}>{currentEv.time?.slice(0,5)} — {addMin(currentEv.time||"00:00",Number(currentEv.duration)||60)}</div>
+            <div style={{fontWeight:700,fontSize: isMobile ? 12 : 14}}>{students.find(s=>s.id===currentEv.studentId)?.name||currentEv.title} — идёт сейчас</div>
+            <div style={{fontSize: isMobile ? 10 : 12,opacity:0.8}}>{currentEv.time?.slice(0,5)} — {addMin(currentEv.time||"00:00",Number(currentEv.duration)||60)}</div>
           </div>
           <div style={{textAlign:"right",flexShrink:0}}>
-            <div style={{fontSize:10,opacity:0.65}}>осталось</div>
-            <div style={{fontSize:16,fontWeight:800}}>{(()=>{const[h,m]=addMin(currentEv.time||"00:00",Number(currentEv.duration)||60).split(":").map(Number);const[nh,nm]=nowStr.split(":").map(Number);return Math.max(0,(h*60+m)-(nh*60+nm))+" мин";})()}</div>
+            <div style={{fontSize: isMobile ? 8 : 10,opacity:0.65}}>осталось</div>
+            <div style={{fontSize: isMobile ? 13 : 16,fontWeight:800}}>{(()=>{const[h,m]=addMin(currentEv.time||"00:00",Number(currentEv.duration)||60).split(":").map(Number);const[nh,nm]=nowStr.split(":").map(Number);return Math.max(0,(h*60+m)-(nh*60+nm))+" мин";})()}</div>
           </div>
         </div>
       )}
 
       {/* Hero greeting */}
-      <div style={{background:"linear-gradient(140deg,#1E1B4B 0%,#1D4ED8 55%,#7C3AED 100%)",borderRadius:16,padding:"24px 28px",marginBottom:16,color:"#fff",position:"relative",overflow:"hidden",boxShadow:"0 8px 32px rgba(29,78,216,0.22)"}}>
+      <div style={{background:"linear-gradient(140deg,#1E1B4B 0%,#1D4ED8 55%,#7C3AED 100%)",borderRadius:16,padding: isMobile ? "16px 18px" : "24px 28px",marginBottom:16,color:"#fff",position:"relative",overflow:"hidden",boxShadow:"0 8px 32px rgba(29,78,216,0.22)"}}>
         <div style={{position:"absolute",right:-50,top:-50,width:200,height:200,borderRadius:"50%",border:"1px solid rgba(255,255,255,0.06)",pointerEvents:"none"}}/>
-        <div style={{fontSize:10,opacity:0.55,marginBottom:2,letterSpacing:"0.06em",fontWeight:600,textTransform:"uppercase"}}>{now.getDate()} {MN2[now.getMonth()]} · {["Воскресенье","Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"][now.getDay()]}</div>
-        <div style={{fontSize:24,fontWeight:800,marginBottom:16,letterSpacing:"-0.04em"}}>{greet}</div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:0}}>
+        <div style={{fontSize: isMobile ? 8 : 10,opacity:0.55,marginBottom:2,letterSpacing:"0.06em",fontWeight:600,textTransform:"uppercase"}}>{now.getDate()} {MN2[now.getMonth()]} · {["Воскресенье","Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"][now.getDay()]}</div>
+        <div style={{fontSize: isMobile ? 20 : 24,fontWeight:800,marginBottom: isMobile ? 10 : 16,letterSpacing:"-0.04em"}}>{greet}</div>
+        <div style={{display:"grid",gridTemplateColumns:`repeat(${isMobile ? 2 : 4},1fr)`,gap: isMobile ? 6 : 0}}>
           {[
             {l:"Уроков сегодня",v:todayL.length,accent:todayL.length>0},
             {l:"Прогноз дня",v:`${fmtM(todayForecast)} ₽`},
             {l:"Следующий",v:nextEv?nextEv.time?.slice(0,5):"—"},
             {l:"Долгов",v:pendPay.length,accent:pendPay.length>0},
-          ].map(({l,v,accent})=>(
+          ].slice(0, isMobile ? 2 : 4).map(({l,v,accent})=>(
             <div key={l}>
-              <div style={{fontSize:9,opacity:0.55,marginBottom:2,fontWeight:600,letterSpacing:"0.05em",textTransform:"uppercase"}}>{l}</div>
-              <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.04em",color:accent?"#FCD34D":"#fff"}}>{v}</div>
+              <div style={{fontSize: isMobile ? 7 : 9,opacity:0.55,marginBottom:2,fontWeight:600,letterSpacing:"0.05em",textTransform:"uppercase"}}>{l}</div>
+              <div style={{fontSize: isMobile ? 16 : 20,fontWeight:800,letterSpacing:"-0.04em",color:accent?"#FCD34D":"#fff"}}>{v}</div>
             </div>
           ))}
         </div>
       </div>
 
       {/* What to do today */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
-        <Card style={{gridColumn:"1/-1"}}>
-          <div style={{fontWeight:700,fontSize:15,marginBottom:12,letterSpacing:"-0.02em",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+      <div style={{marginBottom:16}}>
+        <Card style={{ padding: pad }}>
+          <div style={{fontWeight:700,fontSize: fontSizeTitle,marginBottom: isMobile ? 8 : 12,letterSpacing:"-0.02em",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <span>Что сделать сегодня</span>
-            <span style={{fontSize:11,color:T.t3,fontWeight:400}}>{todayActions.length} пунктов</span>
+            <span style={{fontSize: isMobile ? 10 : 11,color:T.t3,fontWeight:400}}>{todayActions.length} пунктов</span>
           </div>
-          <div style={{display:"flex",flexDirection:"column",gap:7}}>
-            {todayActions.map((a,i)=>(
+          <div style={{display:"flex",flexDirection:"column",gap: isMobile ? 4 : 7}}>
+            {todayActions.slice(0, isMobile ? 5 : 10).map((a,i)=>(
               <div key={i} onClick={()=>{if(a.tab==="_quicklog"){setQuickLog({studentId:a.studentId,date:a.date||today()});}else if(a.tab!=="home"){setTab(a.tab);}}}
-                style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:9,background:T.surface2,cursor:a.tab!=="home"?"pointer":"default",border:`1px solid ${T.border}`,transition:"background 0.1s"}}
+                style={{display:"flex",alignItems:"center",gap: isMobile ? 6 : 10,padding: isMobile ? "6px 8px" : "9px 12px",borderRadius: isMobile ? 6 : 9,background:T.surface2,cursor:a.tab!=="home"?"pointer":"default",border:`1px solid ${T.border}`,transition:"background 0.1s",fontSize: isMobile ? 11 : 13}}
                 onMouseEnter={e=>{if(a.tab!=="home")e.currentTarget.style.background="#E0E7FF";}}
                 onMouseLeave={e=>e.currentTarget.style.background=T.surface2}>
-                <span style={{fontSize:16,flexShrink:0}}>{a.icon}</span>
-                <span style={{fontSize:13,color:T.text,flex:1}}>{a.text}</span>
-                {a.tab!=="home"&&<span style={{fontSize:11,color:T.t3}}>→</span>}
+                <span style={{fontSize: isMobile ? 13 : 16,flexShrink:0}}>{a.icon}</span>
+                <span style={{flex:1}}>{a.text}</span>
+                {a.tab!=="home"&&<span style={{fontSize: isMobile ? 9 : 11,color:T.t3}}>→</span>}
               </div>
             ))}
           </div>
@@ -1076,130 +1083,151 @@ function Home({store,setTab}){
       </div>
 
       {/* KPI row */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:14}}>
+      <div style={{display:"grid",gridTemplateColumns:`repeat(${isMobile ? 2 : 4},1fr)`,gap: isMobile ? 8 : 12,marginBottom:16}}>
         {[
           {v:`${fmtM(mInc)} ₽`,l:"Доход месяца",c:T.accent2,bg:"#F3F0FF",tr:incTrend},
           {v:`${fmtM(mInc-mExp)} ₽`,l:"Прибыль",c:mInc-mExp>=0?T.green:T.red,bg:mInc-mExp>=0?"#EDFBF3":"#FEF2F2"},
           {v:mLessDone,l:"Уроков в месяце",c:T.accent,bg:"#EEF2FF"},
           {v:activeTasks.length,l:"Активных задач",c:T.amber,bg:"#FFFBEB",alert:overdueTasks.length>0},
-        ].map((c,i)=>(
-          <div key={c.l} className="anim-fade-up" style={{background:c.bg,borderRadius:12,padding:"14px 16px",border:`1px solid ${T.border}`,boxShadow:T.shadow,animationDelay:`${i*0.05}s`}}>
+        ].slice(0, isMobile ? 2 : 4).map((c,i)=>(
+          <div key={c.l} className="anim-fade-up" style={{background:c.bg,borderRadius: isMobile ? 10 : 12,padding: isMobile ? "10px 12px" : "14px 16px",border:`1px solid ${T.border}`,boxShadow:T.shadow,animationDelay:`${i*0.05}s`}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:2}}>
-              <div style={{fontSize:22,fontWeight:800,color:c.c,letterSpacing:"-0.04em"}}>{c.v}</div>
-              {c.tr&&<span style={{fontSize:11,fontWeight:700,color:c.tr.up?T.green:T.red}}>{c.tr.dir}{c.tr.pct}%</span>}
-              {c.alert&&overdueTasks.length>0&&<span style={{fontSize:11,fontWeight:700,color:T.red}}>!{overdueTasks.length}</span>}
+              <div style={{fontSize: isMobile ? 17 : 22,fontWeight:800,color:c.c,letterSpacing:"-0.04em"}}>{c.v}</div>
+              {c.tr&&<span style={{fontSize: isMobile ? 9 : 11,fontWeight:700,color:c.tr.up?T.green:T.red}}>{c.tr.dir}{c.tr.pct}%</span>}
+              {c.alert&&overdueTasks.length>0&&<span style={{fontSize: isMobile ? 9 : 11,fontWeight:700,color:T.red}}>!{overdueTasks.length}</span>}
             </div>
-            <div style={{fontSize:11,color:T.t2,fontWeight:500}}>{c.l}</div>
+            <div style={{fontSize: isMobile ? 9 : 11,color:T.t2,fontWeight:500}}>{c.l}</div>
           </div>
         ))}
       </div>
 
-      {/* 3 columns: today / pending pay / tasks */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14,marginBottom:16}}>
-        {/* Today lessons */}
-        <Card>
-          <div style={{fontWeight:700,fontSize:14,marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <span>Сегодня</span>
-            <span style={{fontSize:11,background:"#EEF2FF",color:T.accent,borderRadius:99,padding:"2px 8px",fontWeight:600}}>{todayL.length} уроков</span>
+      {/* Двухколоночная сетка — адаптивная */}
+      <div style={{
+        display:"grid",
+        gridTemplateColumns: isMobile ? "1fr" : "1fr 2fr",
+        gap: isMobile ? 12 : 16
+      }}>
+        {/* Левая колонка — Моя неделя */}
+        <Card style={{ padding: pad }}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom: isMobile ? 10 : 14}}>
+            <div style={{fontWeight:700,fontSize: fontSizeTitle,letterSpacing:"-0.02em"}}>Моя неделя</div>
+            <Btn variant="ghost" size="sm" onClick={()=>setTab("week")}>Подробнее →</Btn>
           </div>
-          {todayEv.length===0
-            ?<div style={{textAlign:"center",padding:"20px 0",color:T.t3,fontSize:13}}>Свободный день 🎉</div>
-            :todayEv.slice(0,6).map(ev=>{
-              const st=students.find(s=>s.id===ev.studentId);
-              const isNow=ev===currentEv;
+          <div style={{display:"flex",flexDirection:"column",gap: isMobile ? 4 : 6}}>
+            {weekDays.map((dk,idx)=>{
+              const dayData = dayLessons.find(d => d.date === dk);
+              const dayEv = dayData ? dayData.events : [];
+              const isToday = dk === t;
               return(
-                <div key={ev.id} onClick={()=>setTab("calendar")} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:`1px solid ${T.border2}`,cursor:"pointer"}}>
-                  <div style={{width:2.5,height:30,borderRadius:99,background:isNow?T.green:evc(ev.type),flexShrink:0}}/>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontWeight:600,fontSize:12,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.title||st?.name||"Событие"}</div>
-                    <div style={{fontSize:10,color:T.t3}}>{ev.time?.slice(0,5)}{isNow&&" · сейчас"}</div>
+                <div key={dk} onClick={()=>setTab("week")} style={{
+                  cursor:"pointer",
+                  display:"flex",
+                  alignItems:"center",
+                  gap: isMobile ? 6 : 10,
+                  padding: isMobile ? "4px 6px" : "6px 8px",
+                  borderRadius:8,
+                  background:isToday?`${T.accent}10`:"transparent",
+                  border:isToday?`1px solid ${T.accent}30`:"none"
+                }}>
+                  <div style={{minWidth: isMobile ? 28 : 32}}>
+                    <div style={{fontSize: isMobile ? 9 : 10, fontWeight:700, color:isToday?T.accent:T.t3, textTransform:"uppercase", letterSpacing:"0.04em"}}>{DS[idx]}</div>
+                    <div style={{fontSize: isMobile ? 12 : 13, fontWeight:700, color:isToday?T.accent:T.text}}>{wDates[idx].getDate()}</div>
                   </div>
-                  {ev.type==="lesson"&&<div style={{fontSize:11,fontWeight:700,color:T.t2,flexShrink:0}}>{fmtM(ev.price||st?.price)} ₽</div>}
+                  <div style={{flex:1, display:"flex", flexWrap:"wrap", gap: isMobile ? 2 : 3}}>
+                    {dayEv.length===0
+                      ?<span style={{fontSize: isMobile ? 10 : 11, color:T.t3, fontStyle:"italic"}}>Свободно</span>
+                      :dayEv.slice(0, isMobile ? 2 : 3).map(ev=>{
+                        const st=students.find(s=>s.id===ev.studentId);
+                        return(
+                          <span key={ev.id} style={{fontSize: isMobile ? 9 : 10, background:`${evc(ev.type)}20`, color:evc(ev.type), padding:"1px 4px", borderRadius:4, whiteSpace:"nowrap"}}>
+                            {ev.time?.slice(0,5)} {st?.name||ev.title}
+                          </span>
+                        );
+                      })
+                    }
+                    {dayEv.length > (isMobile ? 2 : 3) && <span style={{fontSize: isMobile ? 9 : 10, color:T.t3}}>+{dayEv.length - (isMobile ? 2 : 3)}</span>}
+                  </div>
+                  {dayEv.length>0 && <span style={{fontSize: isMobile ? 9 : 10, fontWeight:700, color:T.t2}}>{dayEv.length}</span>}
                 </div>
               );
-            })
-          }
-          <div style={{marginTop:10}}><Btn variant="ghost" size="sm" onClick={()=>setTab("calendar")}>Открыть →</Btn></div>
+            })}
+          </div>
         </Card>
 
-        {/* Pending payments */}
-        <Card>
-          <div style={{fontWeight:700,fontSize:14,marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <span>Ожидают оплаты</span>
-            {pendPay.length>0&&<span style={{fontSize:11,background:"#FEF2F2",color:T.red,borderRadius:99,padding:"2px 8px",fontWeight:600}}>{pendPay.length}</span>}
-          </div>
-          {pendPay.length===0
-            ?<div style={{textAlign:"center",padding:"20px 0",color:T.t3,fontSize:13}}>Всё оплачено ✓</div>
-            :pendPay.map(({s,left})=>(
-              <div key={s.id} onClick={()=>setTab("payments")} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${T.border2}`,cursor:"pointer"}}>
-                <div>
-                  <div style={{fontWeight:600,fontSize:12}}>{s.name}</div>
-                  <div style={{fontSize:10,color:T.t3}}>{s.subject}</div>
-                </div>
-                <span style={{fontWeight:700,color:T.red,fontSize:13}}>{fmtM(left)} ₽</span>
-              </div>
-            ))
-          }
-          <div style={{marginTop:10}}><Btn variant="ghost" size="sm" onClick={()=>setTab("payments")}>К платежам →</Btn></div>
-        </Card>
-
-        {/* Tasks */}
-        <Card>
-          <div style={{fontWeight:700,fontSize:14,marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <span>Задачи</span>
-            {overdueTasks.length>0&&<span style={{fontSize:11,background:"#FEF2F2",color:T.red,borderRadius:99,padding:"2px 8px",fontWeight:600}}>!{overdueTasks.length} просрочено</span>}
-          </div>
-          {activeTasks.length===0
-            ?<div style={{textAlign:"center",padding:"20px 0",color:T.t3,fontSize:13}}>Задач нет ✓</div>
-            :[...overdueTasks,...activeTasks.filter(t=>!overdueTasks.includes(t))].slice(0,5).map(t2=>{
-              const od=overdueTasks.includes(t2);
-              return(
-                <div key={t2.id} onClick={()=>setTab("tasks")} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:`1px solid ${T.border2}`,cursor:"pointer"}}>
-                  <div style={{width:7,height:7,borderRadius:"50%",background:od?T.red:PRC[t2.priority]||T.t3,flexShrink:0}}/>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:12,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:od?T.red:T.text}}>{t2.title}</div>
-                    {t2.deadline&&<div style={{fontSize:10,color:od?T.red:T.t3}}>{od?"просрочено · ":""}{fmtD(t2.deadline)}</div>}
+        {/* Правая колонка — три карточки */}
+        <div style={{display:"flex", flexDirection:"column", gap: isMobile ? 12 : 16}}>
+          {/* Сегодня */}
+          <Card style={{ padding: pad }}>
+            <div style={{fontWeight:700,fontSize: fontSizeCardTitle, marginBottom: isMobile ? 8 : 12, display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+              <span>Сегодня</span>
+              <span style={{fontSize: isMobile ? 10 : 11, background:"#EEF2FF", color:T.accent, borderRadius:99, padding:"1px 8px", fontWeight:600}}>{todayL.length} уроков</span>
+            </div>
+            {todayEv.length===0
+              ?<div style={{textAlign:"center", padding: isMobile ? "4px 0" : "8px 0", color:T.t3, fontSize: isMobile ? 12 : 13}}>Свободный день 🎉</div>
+              :todayEv.slice(0, isMobile ? 3 : 4).map(ev=>{
+                const st=students.find(s=>s.id===ev.studentId);
+                const isNow=ev===currentEv;
+                return(
+                  <div key={ev.id} onClick={()=>setTab("calendar")} style={{display:"flex", alignItems:"center", gap: isMobile ? 6 : 8, padding: isMobile ? "4px 0" : "5px 0", borderBottom:`1px solid ${T.border2}`, cursor:"pointer"}}>
+                    <div style={{width: isMobile ? 2 : 2.5, height: isMobile ? 20 : 24, borderRadius:99, background:isNow?T.green:evc(ev.type), flexShrink:0}}/>
+                    <div style={{flex:1, minWidth:0}}>
+                      <div style={{fontWeight:600, fontSize: fontSizeMedium, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{ev.title||st?.name||"Событие"}</div>
+                      <div style={{fontSize: fontSizeSmall, color:T.t3}}>{ev.time?.slice(0,5)}{isNow&&" · сейчас"}</div>
+                    </div>
+                    {ev.type==="lesson"&&<div style={{fontSize: fontSizeSmall, fontWeight:700, color:T.t2, flexShrink:0}}>{fmtM(ev.price||st?.price)} ₽</div>}
                   </div>
+                );
+              })
+            }
+            <div style={{marginTop: isMobile ? 6 : 8}}><Btn variant="ghost" size="sm" onClick={()=>setTab("calendar")}>Открыть →</Btn></div>
+          </Card>
+
+          {/* Ожидают оплаты */}
+          <Card style={{ padding: pad }}>
+            <div style={{fontWeight:700,fontSize: fontSizeCardTitle, marginBottom: isMobile ? 8 : 12, display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+              <span>Ожидают оплаты</span>
+              {pendPay.length>0&&<span style={{fontSize: isMobile ? 10 : 11, background:"#FEF2F2", color:T.red, borderRadius:99, padding:"1px 8px", fontWeight:600}}>{pendPay.length}</span>}
+            </div>
+            {pendPay.length===0
+              ?<div style={{textAlign:"center", padding: isMobile ? "4px 0" : "8px 0", color:T.t3, fontSize: isMobile ? 12 : 13}}>Всё оплачено ✓</div>
+              :pendPay.slice(0, isMobile ? 3 : 4).map(({s,left})=>(
+                <div key={s.id} onClick={()=>setTab("payments")} style={{display:"flex", justifyContent:"space-between", alignItems:"center", padding: isMobile ? "4px 0" : "5px 0", borderBottom:`1px solid ${T.border2}`, cursor:"pointer"}}>
+                  <div>
+                    <div style={{fontWeight:600, fontSize: fontSizeMedium}}>{s.name}</div>
+                    <div style={{fontSize: fontSizeSmall, color:T.t3}}>{s.subject}</div>
+                  </div>
+                  <span style={{fontWeight:700, color:T.red, fontSize: isMobile ? 12 : 13}}>{fmtM(left)} ₽</span>
                 </div>
-              );
-            })
-          }
-          <div style={{marginTop:10}}><Btn variant="ghost" size="sm" onClick={()=>setTab("tasks")}>Все задачи →</Btn></div>
-        </Card>
+              ))
+            }
+            <div style={{marginTop: isMobile ? 6 : 8}}><Btn variant="ghost" size="sm" onClick={()=>setTab("payments")}>К платежам →</Btn></div>
+          </Card>
+
+          {/* Задачи */}
+          <Card style={{ padding: pad }}>
+            <div style={{fontWeight:700,fontSize: fontSizeCardTitle, marginBottom: isMobile ? 8 : 12, display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+              <span>Задачи</span>
+              {overdueTasks.length>0&&<span style={{fontSize: isMobile ? 10 : 11, background:"#FEF2F2", color:T.red, borderRadius:99, padding:"1px 8px", fontWeight:600}}>!{overdueTasks.length} просрочено</span>}
+            </div>
+            {activeTasks.length===0
+              ?<div style={{textAlign:"center", padding: isMobile ? "4px 0" : "8px 0", color:T.t3, fontSize: isMobile ? 12 : 13}}>Задач нет ✓</div>
+              :[...overdueTasks,...activeTasks.filter(t=>!overdueTasks.includes(t))].slice(0, isMobile ? 3 : 4).map(t2=>{
+                const od=overdueTasks.includes(t2);
+                return(
+                  <div key={t2.id} onClick={()=>setTab("tasks")} style={{display:"flex", alignItems:"center", gap: isMobile ? 6 : 8, padding: isMobile ? "4px 0" : "5px 0", borderBottom:`1px solid ${T.border2}`, cursor:"pointer"}}>
+                    <div style={{width: isMobile ? 5 : 6, height: isMobile ? 5 : 6, borderRadius:"50%", background:od?T.red:PRC[t2.priority]||T.t3, flexShrink:0}}/>
+                    <div style={{flex:1, minWidth:0}}>
+                      <div style={{fontSize: fontSizeMedium, fontWeight:500, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", color:od?T.red:T.text}}>{t2.title}</div>
+                      {t2.deadline&&<div style={{fontSize: fontSizeSmall, color:od?T.red:T.t3}}>{od?"просрочено · ":""}{fmtD(t2.deadline)}</div>}
+                    </div>
+                  </div>
+                );
+              })
+            }
+            <div style={{marginTop: isMobile ? 6 : 8}}><Btn variant="ghost" size="sm" onClick={()=>setTab("tasks")}>Все задачи →</Btn></div>
+          </Card>
+        </div>
       </div>
-
-      {/* ── Блок "Моя неделя" ── */}
-      <Card style={{marginTop:6}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-          <div style={{fontWeight:700,fontSize:15,letterSpacing:"-0.02em"}}>Моя неделя</div>
-          <Btn variant="ghost" size="sm" onClick={()=>setTab("week")}>Подробнее →</Btn>
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4}}>
-          {weekDays.map((dk,idx)=>{
-            const dayData = dayLessons.find(d => d.date === dk);
-            const dayEv = dayData ? dayData.events : [];
-            const isToday = dk === t;
-            return(
-              <div key={dk} onClick={()=>setTab("week")} style={{cursor:"pointer",padding:"8px 4px",borderRadius:8,background:isToday?`${T.accent}10`:"transparent",border:isToday?`1px solid ${T.accent}30`:"none",textAlign:"center"}}>
-                <div style={{fontSize:10,fontWeight:700,color:isToday?T.accent:T.t3,textTransform:"uppercase",letterSpacing:"0.04em"}}>{DS[idx]}</div>
-                <div style={{fontSize:11,fontWeight:600,color:isToday?T.accent:T.text,marginTop:4}}>{wDates[idx].getDate()}</div>
-                {dayEv.length>0 && <div style={{fontSize:9,color:T.t2,fontWeight:500,marginTop:3}}>{dayEv.length} ур</div>}
-                <div style={{marginTop:3,display:"flex",flexDirection:"column",gap:2}}>
-                  {dayEv.slice(0,2).map(ev=>{
-                    const st=students.find(s=>s.id===ev.studentId);
-                    return(
-                      <div key={ev.id} style={{fontSize:8,color:T.t3,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",background:isToday?`${T.accent}08`:"transparent",padding:"1px 3px",borderRadius:3}}>
-                        {ev.time?.slice(0,5)} {st?.name||ev.title}
-                      </div>
-                    );
-                  })}
-                  {dayEv.length>2 && <div style={{fontSize:8,color:T.t3}}>+{dayEv.length-2} ещё</div>}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
     </div>
   );
 }
